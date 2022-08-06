@@ -73,7 +73,7 @@ enum Switches parse_switch_args(struct Arguments* args)
 
         if (strlen(arg) != 2)
         {
-            printf("Invalid switch \"%s\"\r\n", arg);
+            printf("Invalid switch \"%s\"\n", arg);
             exit(1);
         }
 
@@ -83,7 +83,7 @@ enum Switches parse_switch_args(struct Arguments* args)
             case 'H': sw |= SW_SHOW_HEX; sw &= ~SW_SHOW_BIN; break;
             case 'C': sw |= SW_COMPACT_MODE; break;
             default:
-            printf("Invalid switch \"%s\"\r\n", arg);
+            printf("Invalid switch \"%s\"\n", arg);
             exit(1);
         }
         args->begin++;
@@ -101,7 +101,7 @@ void check_pci_bios()
 
     if ((regs.cflag & CFLAG_CARRY) || regs.ah != 0 || regs.edx != *(uint32_t*)"PCI ")
     {
-        printf("PCI BIOS v2.0c+ not found.\r\n");
+        printf("PCI BIOS v2.0c+ not found.\n");
         exit(1);
     }
 }
@@ -113,7 +113,7 @@ unsigned long parse_unsigned_integer(const char* name, const char* str, char end
     unsigned long value = strtoul(str, &end, base);
     if (str == end || value > max || *end != end_char)
     {
-        printf("Invalid %s \"%s\"\r\n", name, str);
+        printf("Invalid %s \"%s\"\n", name, str);
         exit(1);
     }
 
@@ -128,7 +128,7 @@ unsigned long parse_unsigned_integer_arg(const char* name, struct Arguments* arg
 {
     if (args->begin == args->end)
     {
-        printf("Missing %s\r\n", name);
+        printf("Missing %s\n", name);
         exit(1);
     }
     return parse_unsigned_integer(name, *args->begin++, '\0', NULL, base, max);
@@ -145,13 +145,13 @@ struct Device parse_device_args(enum Switches sw, struct Arguments* args)
     in_regs.dx = parse_unsigned_integer_arg("vendor id", args, 16, UINT16_MAX);
     in_regs.si = 0; // assume device index 0
 
-    printf("Tweaking device: DeviceId 0x%04X, VendorId 0x%04X, DeviceIdx 0x0\r\n", in_regs.cx, in_regs.dx);
+    printf("Tweaking device: DeviceId 0x%04X, VendorId 0x%04X, DeviceIdx 0x0\n", in_regs.cx, in_regs.dx);
 
     int386(0x1a, &in_regs, &out_regs);
 
     if ((out_regs.cflag & 0x1) == 1 && out_regs.ah != 0)
     {
-        printf("Failed to find device!\r\n");
+        printf("Failed to find device!\n");
         exit(1);
     }
 
@@ -159,7 +159,7 @@ struct Device parse_device_args(enum Switches sw, struct Arguments* args)
     device.device_and_function_nr = out_regs.bl;
 
     if (~sw & SW_COMPACT_MODE)
-        printf("Device found: BusNr 0x%02X, DeviceNr 0x%02X, FunctionNr 0x%X\r\n", device.bus_nr, device.device_and_function_nr >> 3, device.device_and_function_nr & 0x7);
+        printf("Device found: BusNr 0x%02X, DeviceNr 0x%02X, FunctionNr 0x%X\n", device.bus_nr, device.device_and_function_nr >> 3, device.device_and_function_nr & 0x7);
 
     return device;
 }
@@ -177,7 +177,7 @@ struct Register parse_register_arg(struct Arguments* args)
         case 'W': reg.size = 2; break;
         case 'D': reg.size = 4; break;
         default:
-        printf("Invalid register size '%c'\r\n", *arg);
+        printf("Invalid register size '%c'\n", *arg);
         exit(1);
     }
 
@@ -186,7 +186,7 @@ struct Register parse_register_arg(struct Arguments* args)
 
     if (reg.number % reg.size != 0)
     {
-        printf("Unaligned register access '%s'\r\n", arg);
+        printf("Unaligned register access '%s'\n", arg);
         exit(1);
     }
 
@@ -216,7 +216,7 @@ uint32_t read_pci_config_register(struct Device pci_device, struct Register pci_
 
     if ((regs.cflag & CFLAG_CARRY) || regs.ah != 0)
     {
-        printf("Failed to read register 0x%02X.\r\n", pci_reg.number);
+        printf("Failed to read register 0x%02X.\n", pci_reg.number);
         exit(1);
     }
 
@@ -245,7 +245,7 @@ void write_pci_config_register(struct Device pci_device, struct Register pci_reg
 
     if ((regs.cflag & CFLAG_CARRY) || regs.ah != 0)
     {
-        printf("Failed to read register 0x%02X.\r\n", pci_reg.number);
+        printf("Failed to read register 0x%02X.\n", pci_reg.number);
         exit(1);
     }
 }
@@ -287,7 +287,7 @@ void print_register_value(enum Switches sw, const char* label, uint8_t reg_size,
         }
     }
 
-    printf("\r\n");
+    printf("\n");
 }
 
 
@@ -297,24 +297,24 @@ int main(int argc, const char* argv[])
     enum Switches sw;
     struct Device device;
 
-    printf("TweakPCI - PCI configuration tool v1.0 by TimmermanV\r\n");
+    printf("TweakPCI - PCI configuration tool v1.0 by TimmermanV\n");
 
     if (argc < 2)
     {
-        printf( "\r\n"
-                "Usage:\r\n"
-                "tweakpci [switch]... device_id vendor_id [register [bit_changes...]]...\r\n"
-                "switch = -b show binary representation only\r\n"
-                "         -h show hexadecimal representation only\r\n"
-                "         -c compact output, shows final value only\r\n"
-                "device_id = hexadecimal id of the PCI device (required)\r\n"
-                "vendor_id = hexadecimal id of the PCI vendor (required)\r\n"
-                "register = size 'b'/'w'/'d' (for 8/16/32-bit) + hexdec regnr\r\n"
-                "bit_changes = index of lowest bit (decimal) + '=' + binary digits\r\n"
-                "Examples:\r\n"
-                "tweakpci -h 0496 1039 d0\r\n"
-                "tweakpci 0496 1039 b40 0=10 5=1 6=1\r\n"
-                "tweakpci -c -b 0496 1039 b40 2=010 b81 2=010\r\n"
+        printf( "\n"
+                "Usage:\n"
+                "tweakpci [switch]... device_id vendor_id [register [bit_changes...]]...\n"
+                "switch = -b show binary representation only\n"
+                "         -h show hexadecimal representation only\n"
+                "         -c compact output, shows final value only\n"
+                "device_id = hexadecimal id of the PCI device (required)\n"
+                "vendor_id = hexadecimal id of the PCI vendor (required)\n"
+                "register = size 'b'/'w'/'d' (for 8/16/32-bit) + hexdec regnr\n"
+                "bit_changes = index of lowest bit (decimal) + '=' + binary digits\n"
+                "Examples:\n"
+                "tweakpci -h 0496 1039 d0\n"
+                "tweakpci 0496 1039 b40 0=10 5=1 6=1\n"
+                "tweakpci -c -b 0496 1039 b40 2=010 b81 2=010\n"
         );
         exit(0);
     }
@@ -359,7 +359,7 @@ int main(int argc, const char* argv[])
 
             if (bin_digit_count > reg.size * 8 - bit_idx)
             {
-                printf("Too many binary digits '%s'\r\n", begin_bin_value);
+                printf("Too many binary digits '%s'\n", begin_bin_value);
                 exit(1);
             }
 
@@ -378,7 +378,7 @@ int main(int argc, const char* argv[])
         
         if (~sw & SW_COMPACT_MODE)
         {
-            printf("\r\nRegister 0x%02X (%d-bit)\r\n", reg.number, reg.size * 8);
+            printf("\nRegister 0x%02X (%d-bit)\n", reg.number, reg.size * 8);
             if (has_bit_changes)
             {
                 print_register_value(sw, "Cur value", reg.size, old_reg_value);
