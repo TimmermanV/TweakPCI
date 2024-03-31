@@ -10,44 +10,42 @@ static uint16_t int386r(uint8_t inter_no, struct Regs far* in_regs, struct Regs 
   "push ds"                               \
                                           \
   /* Using call to get a pointer to  */   \
-  /* the next instruction, so it     */   \
-  /* can be patched to an interrupt. */   \
+  /* the next instruction, so the    */   \
+  /* interrupt number can be patched.*/   \
   "call prepare"                          \
-  "nop" /* two bytes to hold the */       \
-  "nop" /* interrupt instruction */       \
+  "db 0xcd" /* interrupt opcode */        \
+  "db 0x00" /* interrupt number */        \
   "jmp save_result"                       \
                                           \
   "prepare:"/*--------------------------*/\
   /* patch int instruction */             \
-  "mov al, 0xcd" /* interrupt opcode */   \
   "mov ah, byte ptr [bp+2]"/* inter_no */ \
-  "pop bx" /* ret addr*/                  \
-  "push bx"                               \
-  "mov word ptr cs:[bx], ax"              \
+  "mov bx, word ptr [bp-6]"/* ret addr */ \
+  "mov byte ptr cs:[bx+1], ah"            \
                                           \
   /* ds:bx = &in_regs */                  \
-  "mov bx, word ptr [bp+4]"               \
-  "mov ds, word ptr [bp+6]"               \
+  "lds bx, [bp+4]"                        \
                                           \
   /* load regs from in_regs */            \
   "mov eax, dword ptr ds:[bx]"            \
-  "push dword ptr ds:[bx+4]" /*ebx*/      \
   "mov ecx, dword ptr ds:[bx+8]"          \
   "mov edx, dword ptr ds:[bx+12]"         \
   "mov esi, dword ptr ds:[bx+16]"         \
   "mov edi, dword ptr ds:[bx+20]"         \
   "push dword ptr ds:[bx+24]" /*cflag*/   \
   "popfd"                                 \
-  "pop ebx"                               \
+  "mov ebx, dword ptr ds:[bx+4]"          \
                                           \
   /* return to the patched instruction */ \
   "ret"                                   \
                                           \
   "save_result:"/*----------------------*/\
-  /* ds:bx = &out_regs */                 \
+  /* use the stack for flags and ebx */   \
+  "pushfd"                                \
   "push ebx"                              \
-  "mov bx, word ptr [bp+8]"               \
-  "mov ds, word ptr [bp+10]"              \
+                                          \
+  /* ds:bx = &out_regs */                 \
+  "lds bx, [bp+8]"                        \
                                           \
   /* save regs to out_regs */             \
   "mov dword ptr ds:[bx], eax"            \
@@ -56,7 +54,6 @@ static uint16_t int386r(uint8_t inter_no, struct Regs far* in_regs, struct Regs 
   "mov dword ptr ds:[bx+12], edx"         \
   "mov dword ptr ds:[bx+16], esi"         \
   "mov dword ptr ds:[bx+20], edi"         \
-  "pushfd"                                \
   "pop dword ptr ds:[bx+24]" /*cflag*/    \
                                           \
   "pop ds"                                \
