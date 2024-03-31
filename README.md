@@ -41,3 +41,4 @@ Run `MAKE.BAT` or more directly `WCL -3 -os TWEAKPCI.C INT386R.C` to build Tweak
 ## Related software
 * [PCISET](https://www.uwe-sieber.de/util_e.html) - A similar utility by Uwe Sieber, written in Pascal.
 * [PCICFG](https://www.cs.cmu.edu/~ralf/files.html) - A utility by Ralf Brown that provides a detailed list of your PCI devices. (RBpci)
+* [PCI](https://web.archive.org/web/20180403184856im_/http://ftp.lip6.fr/pub/pc/garbo/pc/sysutil/pci07.zip) - A similar utility by John S. Fine from the Garbo archive. This utility also lists PCI devices and sometimes shows detailed information on their configuration. (direct download)
